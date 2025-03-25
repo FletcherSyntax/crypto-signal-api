@@ -1,0 +1,14 @@
+name: Hourly Signal
+
+on:
+  schedule:
+    - cron: '0 * * * *'  # Every hour
+  workflow_dispatch:  # lets you run manually too
+
+jobs:
+  trigger_signal:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call Render API
+        run: |
+          curl https://crypto-signal-api.onrender.com/signal
