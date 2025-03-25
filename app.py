@@ -1,18 +1,20 @@
 from flask import Flask, jsonify
 from model import generate_signal
-import os
 
 app = Flask(__name__)
 
+latest_signal = {"signal": None, "time": None}
+
 @app.route('/')
-def index():
+def home():
     return "Crypto Signal API is live!"
 
 @app.route('/signal')
 def signal():
-    result = generate_signal()
-    return jsonify(result)
+    global latest_signal
+    latest_signal = generate_signal()
+    return jsonify(latest_signal)
 
-if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 5000))  # Use Render's port
-    app.run(host='0.0.0.0', port=port)
+@app.route('/latest-signal')
+def latest():
+    return jsonify(latest_signal)
