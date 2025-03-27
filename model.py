@@ -68,7 +68,7 @@ def generate_signal():
     latest_time = str(df.index[-1])
 
     # 7. Send webhook
-    webhook_url = 'https://webhook.site/2368c67f-23ad-41bc-9442-fdc9e370cc16'  # ← replace this!
+    webhook_url = 'https://eojwi9lqfp5tbno.m.pipedream.net'  # ← replace this!
     payload = {
         'signal': latest_signal,
         'time': latest_time,
