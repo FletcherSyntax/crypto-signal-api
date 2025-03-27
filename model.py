@@ -8,7 +8,7 @@ from tensorflow.keras.layers import LSTM, Dense
 import os
 
 # 1. Download BTC-USD hourly data
-df = yf.download('BTC-USD', interval='60m', period='7d', auto_adjust=True)
+df = yf.download('BTC-USD', interval='60m', period='14d', auto_adjust=True)
 df = df[['Open', 'High', 'Low', 'Close', 'Volume']]
 
 # 2. Indicators
