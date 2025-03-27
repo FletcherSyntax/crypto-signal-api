@@ -1,4 +1,4 @@
-from flask import Flask, jsonify
+from flask import Flask, jsonify, send_file  # ← add send_file here
 from model import generate_signal
 
 app = Flask(__name__)
@@ -19,7 +19,12 @@ def signal():
 def latest():
     return jsonify(latest_signal)
 
-# 🔧 This is what tells Render how to run your Flask app
+# ✅ NEW: Serve the signals.json for Pine Script
+@app.route('/signals.json')
+def serve_signals():
+    return send_file("signals.json", mimetype="application/json")
+
+# 🔧 This tells Render how to run the Flask app
 if __name__ == "__main__":
     import os
     port = int(os.environ.get("PORT", 5000))
