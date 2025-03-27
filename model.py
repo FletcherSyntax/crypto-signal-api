@@ -8,7 +8,7 @@ from tensorflow.keras.layers import LSTM, Dense
 
 def generate_signal():
     # 1. Download BTC-USD hourly data
-    df = yf.download('BTC-USD', interval='60m', period='14d', auto_adjust=True)
+    df = yf.download('BTC-USD', interval='60m', period='30d', auto_adjust=True)
     df = df[['Open', 'High', 'Low', 'Close', 'Volume']]
 
     print("📊 Rows after download:", len(df))
