@@ -13,8 +13,12 @@ def home():
 @app.route('/signal')
 def signal():
     global latest_signal
-    latest_signal = generate_signal()
-    return jsonify(latest_signal)
+    try:
+        latest_signal = generate_signal()
+        return jsonify(latest_signal)
+    except Exception as e:
+        print("❌ Error generating signal:", str(e))
+        return jsonify({"error": "Signal generation failed", "details": str(e)}), 500
 
 @app.route('/latest-signal')
 def latest():
