@@ -1,0 +1,19 @@
+# Python
+*.pyc
+__pycache__/
+.venv/
+venv/
+.env
+.env.*
+
+# Data
+*.csv
+*.h5
+*.pkl
+*.npy
+*.log
+signals.json
+
+# OS
+.DS_Store
+Thumbs.db
