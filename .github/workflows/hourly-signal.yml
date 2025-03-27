@@ -1,14 +1,35 @@
-name: Hourly Signal
+name: Run AI Model Hourly and Commit signals.json
 
 on:
   schedule:
-    - cron: '0 * * * *'  # Every hour
-  workflow_dispatch:  # lets you run manually too
+    - cron: '0 * * * *'  # every hour
+  workflow_dispatch:     # allows manual triggering
 
 jobs:
-  trigger_signal:
+  run-model:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Call Render API
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
         run: |
-          curl https://crypto-signal-api.onrender.com/signal
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run model.py
+        run: python model.py
+
+      - name: Commit and push signals.json
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add signals.json
+          git commit -m "Update signals.json [auto]" || echo "No changes to commit"
+          git push
