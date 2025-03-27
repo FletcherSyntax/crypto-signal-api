@@ -32,6 +32,7 @@ def generate_signal():
     print("🔍 NaN count per column before dropna():")
     print(df.isna().sum())
 
+    print("🧪 DataFrame shape before dropna:", df.shape)
     df.dropna(inplace=True)
     print("✅ Rows after dropna():", len(df))
 
