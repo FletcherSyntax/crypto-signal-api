@@ -29,14 +29,21 @@ df['macd_signal'] = df['macd'].ewm(span=9, adjust=False).mean()
 
 df.dropna(inplace=True)
 
+# ✅ Safety check before scaling
+lookback = 48
+if df.shape[0] <= lookback + 1:
+    raise ValueError(f"Not enough data after preprocessing. Needed at least {lookback+2}, got {df.shape[0]}")
+
 # 3. Prepare features
 features = ['Close', 'rsi', 'macd', 'macd_signal', 'sma_50']
+if df[features].shape[0] == 0:
+    raise ValueError("No rows available for scaling. Data was likely dropped by indicators.")
+
 scaler = MinMaxScaler()
 scaled_features = scaler.fit_transform(df[features])
 
 # 4. Create sequences
 X, y = [], []
-lookback = 48
 
 for i in range(lookback, len(scaled_features) - 1):
     X.append(scaled_features[i - lookback:i])
@@ -71,4 +78,3 @@ with open("signals.json", "w") as f:
     json.dump(signal_data, f)
 
 print("✅ Exported latest signals to signals.json")
-
