@@ -17,8 +17,8 @@ df['sma_50'] = df['Close'].rolling(window=50).mean()
 delta = df['Close'].diff()
 gain = np.where(delta > 0, delta, 0)
 loss = np.where(delta < 0, -delta, 0)
-avg_gain = pd.Series(gain).rolling(window=14).mean()
-avg_loss = pd.Series(loss).rolling(window=14).mean()
+avg_gain = pd.Series(gain.ravel()).rolling(window=14).mean()
+avg_loss = pd.Series(loss.ravel()).rolling(window=14).mean()
 rs = avg_gain / avg_loss
 df['rsi'] = 100 - (100 / (1 + rs))
 
