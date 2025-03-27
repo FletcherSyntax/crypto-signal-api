@@ -14,7 +14,9 @@ def home():
 def signal():
     global latest_signal
     try:
+        print("🚀 Triggering signal generation...")
         latest_signal = generate_signal()
+        print("✅ Signal generated:", latest_signal)
         return jsonify(latest_signal)
     except Exception as e:
         print("❌ Error generating signal:", str(e))
