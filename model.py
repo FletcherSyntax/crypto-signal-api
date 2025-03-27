@@ -1,88 +1,74 @@
 import yfinance as yf
 import pandas as pd
 import numpy as np
+import json
 from sklearn.preprocessing import MinMaxScaler
-from sklearn.utils import class_weight
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import LSTM, Dense
-import requests
+import os
 
-def generate_signal():
-    # 1. Get recent hourly BTC data
-    df = yf.download('BTC-USD', period='7d', interval='1h', auto_adjust=True)
-    df = df[['Open', 'High', 'Low', 'Close', 'Volume']]
+# 1. Download BTC-USD hourly data
+df = yf.download('BTC-USD', interval='60m', period='7d', auto_adjust=True)
+df = df[['Open', 'High', 'Low', 'Close', 'Volume']]
 
-    # 2. Add technical indicators
-    df['sma_20'] = df['Close'].rolling(window=20).mean()
+# 2. Indicators
+df['sma_50'] = df['Close'].rolling(window=50).mean()
 
-    delta = df['Close'].diff()
-    gain = delta.where(delta > 0, 0)
-    loss = -delta.where(delta < 0, 0)
-    avg_gain = gain.rolling(window=14).mean()
-    avg_loss = loss.rolling(window=14).mean()
-    rs = avg_gain / avg_loss
-    df['rsi'] = 100 - (100 / (1 + rs))
+delta = df['Close'].diff()
+gain = np.where(delta > 0, delta, 0)
+loss = np.where(delta < 0, -delta, 0)
+avg_gain = pd.Series(gain).rolling(window=14).mean()
+avg_loss = pd.Series(loss).rolling(window=14).mean()
+rs = avg_gain / avg_loss
+df['rsi'] = 100 - (100 / (1 + rs))
 
-    ema12 = df['Close'].ewm(span=12, adjust=False).mean()
-    ema26 = df['Close'].ewm(span=26, adjust=False).mean()
-    df['macd'] = ema12 - ema26
-    df['macd_signal'] = df['macd'].ewm(span=9, adjust=False).mean()
+ema12 = df['Close'].ewm(span=12, adjust=False).mean()
+ema26 = df['Close'].ewm(span=26, adjust=False).mean()
+df['macd'] = ema12 - ema26
+df['macd_signal'] = df['macd'].ewm(span=9, adjust=False).mean()
 
-    # 3. Clean data
-    df.dropna(inplace=True)
-    if df.empty:
-        return {"error": "No data after cleaning"}
+df.dropna(inplace=True)
 
-    # 4. Prepare features
-    features = ['Close', 'rsi', 'macd', 'macd_signal', 'sma_20']
-    scaler = MinMaxScaler()
-    scaled = scaler.fit_transform(df[features])
+# 3. Prepare features
+features = ['Close', 'rsi', 'macd', 'macd_signal', 'sma_50']
+scaler = MinMaxScaler()
+scaled_features = scaler.fit_transform(df[features])
 
-    X, y = [], []
-    lookback = 24  # 24 hours
-    for i in range(lookback, len(scaled) - 1):
-        X.append(scaled[i - lookback:i])
-        y.append(int(df['Close'].iloc[i + 1] > df['Close'].iloc[i]))
+# 4. Create sequences
+X, y = [], []
+lookback = 48
 
-    X, y = np.array(X), np.array(y)
-    if X.size == 0 or y.size == 0:
-        return {"error": "Not enough data to generate signal"}
+for i in range(lookback, len(scaled_features) - 1):
+    X.append(scaled_features[i - lookback:i])
+    y.append(int(df['Close'].iloc[i + 1] > df['Close'].iloc[i]))
 
-    # 5. Build & train model
-    model = Sequential([
-        LSTM(64, input_shape=(X.shape[1], X.shape[2])),
-        Dense(1, activation='sigmoid')
-    ])
-    model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
+X, y = np.array(X), np.array(y)
 
-    weights = class_weight.compute_class_weight(class_weight='balanced', classes=np.unique(y), y=y)
-    model.fit(X, y, epochs=2, batch_size=32, validation_split=0.2, class_weight=dict(enumerate(weights)), verbose=0)
+# 5. Train model
+model = Sequential([
+    LSTM(64, input_shape=(X.shape[1], X.shape[2])),
+    Dense(1, activation='sigmoid')
+])
+model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
+model.fit(X, y, epochs=5, batch_size=32, verbose=0)
 
-    # 6. Predict
-    preds = model.predict(X, verbose=0)
-    df = df.iloc[-preds.shape[0]:]
-    df['signal'] = (preds > 0.5).astype(int)
-    df['signal_label'] = df['signal'].map({1: 'BUY', 0: 'SELL'})
+# 6. Predict
+preds = model.predict(X, verbose=0)
+df = df.iloc[-preds.shape[0]:]
+df['signal'] = (preds > 0.5).astype(int)
+df['signal_label'] = df['signal'].map({1: 'BUY', 0: 'SELL'})
 
-    latest_signal = df['signal_label'].iloc[-1]
-    latest_time = str(df.index[-1])
+# 7. Export to signals.json
+signal_times = [int(ts.timestamp()) for ts in df.index[-200:]]
+signal_values = df['signal'].values[-200:].astype(int).tolist()
 
-    # 7. Send webhook
-    webhook_url = 'https://eojwi9lqfp5tbno.m.pipedream.net'  # ← replace this!
-    payload = {
-        'signal': latest_signal,
-        'time': latest_time,
-        'symbol': 'BTC-USD',
-        'source': 'AI'
-    }
+signal_data = {
+    "times": signal_times,
+    "signals": signal_values
+}
 
-    try:
-        response = requests.post(webhook_url, json=payload)
-        print("✅ Webhook sent:", response.status_code)
-    except Exception as e:
-        print("❌ Webhook error:", str(e))
+with open("signals.json", "w") as f:
+    json.dump(signal_data, f)
 
-    return {
-        'time': latest_time,
-        'signal': latest_signal
-    }
+print("✅ Exported latest signals to signals.json")
+
