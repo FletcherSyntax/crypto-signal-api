@@ -5,13 +5,12 @@ import json
 from sklearn.preprocessing import MinMaxScaler
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import LSTM, Dense
-import os
 
 def generate_signal():
     # 1. Download BTC-USD hourly data
     df = yf.download('BTC-USD', interval='60m', period='14d', auto_adjust=True)
     df = df[['Open', 'High', 'Low', 'Close', 'Volume']]
-    print("\n📊 Rows after download:", len(df))
+    print(f"📊 Rows after download: {len(df)}")
 
     # 2. Indicators
     df['sma_50'] = df['Close'].rolling(window=50).mean()
@@ -29,31 +28,28 @@ def generate_signal():
     df['macd'] = ema12 - ema26
     df['macd_signal'] = df['macd'].ewm(span=9, adjust=False).mean()
 
-    print("\n🔍 NaN count per column before dropna():")
+    print("🔍 NaN count per column before dropna():")
     print(df.isna().sum())
 
     df.dropna(inplace=True)
-    print("✅ Rows after dropna():", len(df))
+    print(f"✅ Rows after dropna(): {len(df)}")
 
-    # 3. Prepare features
+    # 3. Check if enough data
+    lookback = 48
+    if df.shape[0] < lookback + 2:
+        raise ValueError(f"Not enough data after preprocessing. Needed at least {lookback+2}, got {df.shape[0]}")
+
+    # 4. Features & sequences
     features = ['Close', 'rsi', 'macd', 'macd_signal', 'sma_50']
-    if len(df) < 50:
-        raise ValueError(f"Not enough data after preprocessing. Needed at least 50, got {df.shape[0]}")
-
     scaler = MinMaxScaler()
     scaled_features = scaler.fit_transform(df[features])
 
-    # 4. Create sequences
     X, y = [], []
-    lookback = 48
     for i in range(lookback, len(scaled_features) - 1):
         X.append(scaled_features[i - lookback:i])
-        y.append(int(df['Close'].iloc[i + 1] > df['Close'].iloc[i]))
+        y.append(int(df['Close'].iloc[i + 1] > df['Close'].iloc[i]))  # 1 if price goes up next
 
     X, y = np.array(X), np.array(y)
-
-    if len(X) == 0:
-        raise ValueError("Not enough data for model training.")
 
     # 5. Train model
     model = Sequential([
@@ -68,9 +64,6 @@ def generate_signal():
     df = df.iloc[-preds.shape[0]:]
     df['signal'] = (preds > 0.5).astype(int)
     df['signal_label'] = df['signal'].map({1: 'BUY', 0: 'SELL'})
-
-    latest_signal = df['signal_label'].iloc[-1]
-    latest_time = str(df.index[-1])
 
     # 7. Export to signals.json
     signal_times = [int(ts.timestamp()) for ts in df.index[-200:]]
@@ -87,9 +80,6 @@ def generate_signal():
     print("✅ Exported latest signals to signals.json")
 
     return {
-        'time': latest_time,
-        'signal': latest_signal
+        "time": str(df.index[-1]),
+        "signal": df['signal_label'].iloc[-1]
     }
-
-if __name__ == "__main__":
-    generate_signal()
