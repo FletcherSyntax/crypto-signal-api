@@ -7,9 +7,13 @@ from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import LSTM, Dense
 import os
 
+lookback = 48  # Moved to top so it's available early
+
 # 1. Download BTC-USD hourly data
 df = yf.download('BTC-USD', interval='60m', period='30d', auto_adjust=True)
 df = df[['Open', 'High', 'Low', 'Close', 'Volume']]
+
+print("📊 Rows after download:", len(df))
 
 # 2. Indicators
 df['sma_50'] = df['Close'].rolling(window=50).mean()
@@ -27,10 +31,15 @@ ema26 = df['Close'].ewm(span=26, adjust=False).mean()
 df['macd'] = ema12 - ema26
 df['macd_signal'] = df['macd'].ewm(span=9, adjust=False).mean()
 
+# 🔍 Debug NaNs before dropping
+print("🔍 NaN count per column before dropna():")
+print(df.isna().sum())
+
 df.dropna(inplace=True)
 
-# ✅ Safety check before scaling
-lookback = 48
+print("✅ Rows after dropna():", len(df))
+
+# ✅ Safety check
 if df.shape[0] <= lookback + 1:
     raise ValueError(f"Not enough data after preprocessing. Needed at least {lookback+2}, got {df.shape[0]}")
 
