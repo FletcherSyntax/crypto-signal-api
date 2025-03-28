@@ -9,9 +9,11 @@ from tensorflow.keras.layers import LSTM, Dense
 def generate_signal():
     # 1. Download BTC-USD hourly data
     df = yf.download('BTC-USD', interval='60m', period='30d', auto_adjust=True)
-    df = df[['Open', 'High', 'Low', 'Close', 'Volume']]
+    if df.empty:
+        raise ValueError("❌ Failed to download BTC-USD data. Empty DataFrame.")
 
     print("📊 Rows after download:", len(df))
+    df = df[['Open', 'High', 'Low', 'Close', 'Volume']]
 
     # 2. Indicators
     df['sma_50'] = df['Close'].rolling(window=50).mean()
@@ -32,7 +34,6 @@ def generate_signal():
     print("🔍 NaN count per column before dropna():")
     print(df.isna().sum())
 
-    print("🧪 DataFrame shape before dropna:", df.shape)
     df.dropna(inplace=True)
     print("✅ Rows after dropna():", len(df))
 
