@@ -1,0 +1,31 @@
+Ok, since this is getting complex, we are going to make some notes real quick.
+
+1. We have a github repository with all applicable python files on it.
+2. We have local copies of the python files we are editing locally and pushing to git hub
+	git add model.py
+	git commit -m "Update model.py with new webhook URL"
+	git push origin main
+3. We have a server thing running at https://dashboard.render.com/web/srv-cvhgsm9c1ekc738binc0/deploys/dep-cvio4shr0fns738hsin0 that seems to be running the python code.
+4. In order to run it on a schedule we are using a file called hourly-signal.yml that is running on github to trigger the render server to run the python code.
+5. When the python code runs on render it looks at bitcoin prices, MA, RSI (this list should change as we get better) and decides if it's a sell or buy signal.
+6. It then sends that data to pipedream as JSON and looks like this:
+	
+steps.trigger
+{2}
+context
+{19}
+event
+{4}
+signal:
+SELL
+•
+source:
+AI
+symbol:
+BTC-USD
+time:
+2025-03-27 16:00:00+00:00
+
+7. Most of this is no longer used and it's getting very confusing.
+
+Here is my pipedream url: https://eosi5yqo3vdcu4y.m.pipedream.net
