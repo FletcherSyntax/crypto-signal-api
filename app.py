@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, send_file, make_response
+from flask import Flask, jsonify, send_from_directory
 from model import generate_signal
 import os
 
@@ -23,20 +23,12 @@ def signal():
 def latest():
     return jsonify(latest_signal)
 
+# ✅ Serve signals.json publicly
 @app.route('/signals.json')
-def signals_json():
-    try:
-        with open("signals.json", "r") as f:
-            data = f.read()
-        response = make_response(data)
-        response.headers['Content-Type'] = 'application/json'
-        response.headers['Access-Control-Allow-Origin'] = '*'
-        return response
-    except FileNotFoundError:
-        return jsonify({"error": "signals.json not found"}), 404
+def signals_file():
+    return send_from_directory('.', 'signals.json')
 
+# Required by Render to bind to a port
 if __name__ == "__main__":
-    import os
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
-
