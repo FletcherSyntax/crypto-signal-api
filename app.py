@@ -1,6 +1,6 @@
 from flask import Flask, jsonify, send_from_directory
-from model import generate_signal
 import os
+from model import generate_signal
 
 app = Flask(__name__)
 
@@ -13,22 +13,18 @@ def home():
 @app.route('/signal')
 def signal():
     global latest_signal
-    try:
-        latest_signal = generate_signal()
-        return jsonify(latest_signal)
-    except Exception as e:
-        return jsonify({"error": "Signal generation failed", "details": str(e)}), 500
+    latest_signal = generate_signal()
+    return jsonify(latest_signal)
 
 @app.route('/latest-signal')
 def latest():
     return jsonify(latest_signal)
 
-# ✅ Serve signals.json publicly
 @app.route('/signals.json')
-def signals_file():
-    return send_from_directory('.', 'signals.json')
+def get_signal_json():
+    return send_from_directory(os.getcwd(), 'signals.json')
 
-# Required by Render to bind to a port
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
+
