@@ -22,7 +22,12 @@ def latest():
 
 @app.route('/signals.json')
 def get_signal_json():
-    return send_from_directory(os.getcwd(), 'signals.json')
+    path = os.path.dirname(os.path.abspath(__file__))
+    file_path = os.path.join(path, 'signals.json')
+    if os.path.exists(file_path):
+        return send_from_directory(path, 'signals.json')
+    else:
+        return jsonify({"error": "signals.json not found"}), 404
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
